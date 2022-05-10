@@ -1,3 +1,4 @@
+
 def triangle():
     """Cette fonction crée une pyramide de triangles
     sur un maximum de 10 lignes
@@ -11,5 +12,6 @@ def triangle():
         star += "*"
         print(star)
         count += 1
+
 
 triangle()
