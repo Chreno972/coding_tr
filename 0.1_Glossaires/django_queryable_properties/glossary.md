@@ -219,3 +219,109 @@ def testing(request):
 ```sql
 SELECT * FROM members WHERE   firstname = 'Emil' OR firstname = 'Tobias';
 ```
+
+
+---
+---
+from django.db.models import Q
+from group.models import User
+from group.models import Agency
+from django.db import connections
+from consolidation.models.models import InitialsModifications, Employee
+
+print(connections['ics_config'].settings_dict)
+
+
+### QUERYSET FILTERS EXAMPLES
+
+```PYTHON
+"""
+Récupères les champs id, email, password, dans la table ics_initialsmodifications
+et comme la classe InitialsModifications le demande, classe les résultats par
+le champ email, dans l'ordre décroissant.
+"""
+print(InitialsModifications.objects.using('ics_config')
+```
+
+```sql
+SELECT "ics_initialsmodifications"."id",
+"ics_initialsmodifications"."email",
+"ics_initialsmodifications"."password"
+FROM "ics_initialsmodifications"
+ORDER BY "ics_initialsmodifications"."email"
+ASC
+```
+Cela me retourne le contenu du queryset, qui n'est autre qu'une suite d'objets, car on ne lui a pas demandé
+de nous retourner les valeurs
+
+> [<InitialsModifications: InitialsModifications object (47611)>, <InitialsModifications: InitialsModifications object (85668)>...]
+
+---
+
+```PYTHON
+"""
+RECUPERE les champs id, email, password, base_name 
+DANS la table ics_initialsmodifications
+OU l'adresse mail de chaque objet est 'jdupont@q1c1.fr'
+et comme la classe InitialsModifications le demande, classe les résultats par
+le champ email, dans l'ordre décroissant.
+"""
+objects_list = InitialsModifications.objects.using('ics_config').filter(base_name='sgti').values()
+
+for o in list(objects_list):
+    print(o)
+```
+
+```sql
+SELECT "ics_initialsmodifications"."id",
+       "ics_initialsmodifications"."email",
+       "ics_initialsmodifications"."password",
+       "ics_initialsmodifications"."base name"
+FROM "ics_initialsmodifications"
+WHERE "ics_initialsmodifications"."email" = jdupont@q1c1.fr
+ORDER BY "ics_initialsmodifications"."email"
+ASC
+
+```
+
+Cela retourne un dictionnaire des objets du queryset
+> {'id': 311, 'email': 'jdupont@q1c1.fr', 'password': 'jdu22v', 'base_name': 'a2i'}
+> {'id': 86, 'email': 'jdupont@q1c1.fr', 'password': 'jdu3v', 'base_name': 'mersoleil'}
+> {'id': 104, 'email': 'jdupont@q1c1.fr', 'password': 'jdu3v', 'base_name': 'perpignan'}
+> {'id': 29, 'email': 'jdupont@q1c1.fr', 'password': 'jdu3v', 'base_name': 'bourguignon'}
+> {'id': 79, 'email': 'jdupont@q1c1.fr', 'password': 'jdu3v', 'base_name': 'leraincy'}
+> {'id': 96, 'email': 'jdupont@q1c1.fr', 'password': 'jdu3v', 'base_name': 'ocimmo'}
+> {'id': 138, 'email': 'jdupont@q1c1.fr', 'password': 'jdu3v', 'base_name': 'superrouviere'}
+> ...
+
+---
+
+inérer les valeurs de chaque dictionnaire dans une liste, cad sans les clés.
+
+```python
+"""SELECTIONNE FROM ics_initialsmodifications, le champ base_name
+OU indépendament de la casse, le champ email de l'objet CONTIENT 'q1c1'
+convertit le tout en liste de la valeur base_name de chaque objet.
+fait le order by, puis enfin, retournes mois les 100 premiers objets
+"""
+objects_list = InitialsModifications.objects.using('ics_config')
+.filter(email__icontains='q1c1')
+.values_list('base_name', flat=True)[:100]
+```
+
+
+```sql
+SELECT "ics_initialsmodifications"."base_name"
+FROM "ics_initialsmodifications"
+WHERE UPPER("ics_initialsmodifications"."email"::text)
+LIKE UPPER(%q1c1%)
+ORDER BY "ics_initialsmodifications"."email"
+ASC LIMIT 100
+```
+
+Cela retourne
+> ['chartres', 'sgti', 'beranger', 'meaux', 'nancy', 'meaux', 'abquittet', 'sthonore', 'nancy'...]
+
+Et si on fait un print avec un for loop, on récupère bien sûr des strings.
+
+`value_list` allié à `flat=True` permet de recevoir uniquement la valeur de chaque objet au lieu d'un dictionnaire
